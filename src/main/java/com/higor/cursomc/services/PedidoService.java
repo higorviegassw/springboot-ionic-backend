@@ -4,8 +4,12 @@ import java.util.Date;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.stereotype.Service;
 
+import com.higor.cursomc.domain.Cliente;
 import com.higor.cursomc.domain.ItemPedido;
 import com.higor.cursomc.domain.PagamentoComBoleto;
 import com.higor.cursomc.domain.Pedido;
@@ -13,6 +17,8 @@ import com.higor.cursomc.domain.enums.EstadoPagamento;
 import com.higor.cursomc.repositories.ItemPedidoRepository;
 import com.higor.cursomc.repositories.PagamentoRepository;
 import com.higor.cursomc.repositories.PedidoRepository;
+import com.higor.cursomc.security.UserSS;
+import com.higor.cursomc.services.exceptions.AuthorizationException;
 import com.higor.cursomc.services.exceptions.ObjectNotFoundException;
 
 @Service
@@ -69,5 +75,16 @@ public class PedidoService {
 		emailService.sendOrderConfirmationHtmlEmail(obj);
 		
 		return obj;
+	}
+	
+	public Page<Pedido> findPage(Integer page, Integer linesPerPage, String orderBy, String direction) {
+		UserSS user = UserService.authenticated();
+		if (user == null) {
+			throw new AuthorizationException("Acesso negado");
+		}
+		
+		PageRequest pageRequest = PageRequest.of(page, linesPerPage, Direction.valueOf(direction), orderBy);
+		Cliente cliente = clienteService.find(user.getId());
+		return repo.findByCliente(cliente, pageRequest);
 	}
 }
